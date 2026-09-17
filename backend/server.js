@@ -1,289 +1,287 @@
 // ======================================================
 // FILE: server.js
-// PRODUCTION LEVEL ECOMMERCE BACKEND SERVER
+// STYLENTRA E-COMMERCE BACKEND SERVER
 // ======================================================
 
-import "dotenv/config"
+import "dotenv/config";
 
-import express from "express"
-import mongoose from "mongoose"
-import cors from "cors"
-import helmet from "helmet"
-import morgan from "morgan"
-import cookieParser from "cookie-parser"
+import express from "express";
+import mongoose from "mongoose";
+import cors from "cors";
+import helmet from "helmet";
+import morgan from "morgan";
+import cookieParser from "cookie-parser";
+
+// ======================================================
+// IMPORT DATABASE & SERVICES
+// ======================================================
+
+import connectDB from "./config/mongodb.js";
+import { connectCloudinary } from "./config/cloudinary.js";
 
 // ======================================================
 // IMPORT ROUTES
 // ======================================================
 
-import userRoute from "./routes/userRoute.js"
-
-// ======================================================
-// IMPORT CONFIGS
-// ======================================================
-
-import { connectCloudinary } from "./config/cloudinary.js"
+import userRoute from "./routes/userRoute.js";
 
 // ======================================================
 // APP INITIALIZATION
 // ======================================================
 
-const app = express()
+const app = express();
 
 // ======================================================
 // REQUIRED ENVIRONMENT VARIABLES
 // ======================================================
 
 const requiredEnvVars = [
-    "PORT",
-    "MONGODB_URI",
-    "JWT_SECRET",
-    "CLOUDINARY_NAME",
-    "CLOUDINARY_API_KEY",
-    "CLOUDINARY_SECRET_KEY"
-]
+  "PORT",
+  "MONGODB_URI",
+  "JWT_SECRET",
+  "CLOUDINARY_NAME",
+  "CLOUDINARY_API_KEY",
+  "CLOUDINARY_SECRET_KEY",
+];
 
-requiredEnvVars.forEach((env) => {
-    if (!process.env[env]) {
-        console.log(`
-==================================================
-❌ Missing Environment Variable
-==================================================
-${env}
-==================================================
-`)
-        process.exit(1)
-    }
-})
+const missingEnvVars = requiredEnvVars.filter(
+  (env) => !process.env[env]
+);
 
-// ======================================================
-// DATABASE CONNECTION
-// ======================================================
+if (missingEnvVars.length > 0) {
+  console.error(`
+==================================================
+❌ Missing Environment Variables
 
-const connectDB = async () => {
-    try {
-        await mongoose.connect(process.env.MONGODB_URI)
+${missingEnvVars.join("\n")}
 
-        console.log(`
 ==================================================
-✅ MongoDB Connected Successfully
-==================================================
-`)
-    } catch (error) {
-        console.log(`
-==================================================
-❌ MongoDB Connection Failed
-==================================================
-${error.message}
-==================================================
-`)
-        process.exit(1)
-    }
+`);
+
+  process.exit(1);
 }
 
 // ======================================================
-// CONNECT CLOUDINARY
+// INITIALIZE DATABASE & CLOUDINARY
 // ======================================================
 
 const initializeServices = async () => {
-    try {
-        await connectDB()
+  try {
+    await connectDB();
+    await connectCloudinary();
 
-        await connectCloudinary()
-
-        console.log(`
+    console.log(`
 ==================================================
-☁️ Cloudinary Connected Successfully
+✅ All Services Initialized Successfully
 ==================================================
-`)
-    } catch (error) {
-        console.log(`
+`);
+  } catch (error) {
+    console.error(`
 ==================================================
 ❌ Service Initialization Failed
-==================================================
+
 ${error.message}
+
 ==================================================
-`)
-        process.exit(1)
-    }
-}
+`);
+
+    process.exit(1);
+  }
+};
 
 // ======================================================
 // SECURITY MIDDLEWARE
 // ======================================================
 
 app.use(
-    helmet({
-        crossOriginResourcePolicy: false
-    })
-)
+  helmet({
+    crossOriginResourcePolicy: false,
+  })
+);
 
 // ======================================================
-// LOGGER
-// ======================================================
-
-app.use(morgan("dev"))
-
-// ======================================================
-// BODY PARSER
-// ======================================================
-
-app.use(express.json({ limit: "10mb" }))
-app.use(express.urlencoded({ extended: true, limit: "10mb" }))
-
-// ======================================================
-// COOKIE PARSER
-// ======================================================
-
-app.use(cookieParser())
-
-// ======================================================
-// CORS CONFIGURATION
+// CORS
 // ======================================================
 
 const allowedOrigins = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173"
-]
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+];
 
 app.use(
-    cors({
-        origin: function (origin, callback) {
-            if (!origin || allowedOrigins.includes(origin)) {
-                callback(null, true)
-            } else {
-                callback(new Error("CORS Not Allowed"))
-            }
-        },
-        credentials: true
-    })
-)
+  cors({
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("CORS Not Allowed"));
+    },
+    credentials: true,
+  })
+);
 
 // ======================================================
-// API STATUS ROUTE
+// MIDDLEWARE
+// ======================================================
+
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(cookieParser());
+
+if (process.env.NODE_ENV !== "production") {
+  app.use(morgan("dev"));
+}
+
+// ======================================================
+// ROOT ROUTE
 // ======================================================
 
 app.get("/", (req, res) => {
-    res.status(200).json({
-        success: true,
-        message: "Stylentra Backend Running 🚀",
-        environment: process.env.NODE_ENV || "development",
-        timestamp: new Date()
-    })
-})
+  res.status(200).json({
+    success: true,
+    project: "Stylentra Backend",
+    status: "Running 🚀",
+    environment: process.env.NODE_ENV || "development",
+    timestamp: new Date(),
+  });
+});
 
 // ======================================================
-// HEALTH CHECK ROUTE
+// HEALTH CHECK
 // ======================================================
 
 app.get("/api/health", (req, res) => {
-    res.status(200).json({
-        success: true,
-        status: "Server Healthy ✅",
-        uptime: process.uptime(),
-        time: new Date()
-    })
-})
+  res.status(200).json({
+    success: true,
+    status: "Healthy ✅",
+    uptime: process.uptime(),
+    database:
+      mongoose.connection.readyState === 1
+        ? "Connected"
+        : "Disconnected",
+    timestamp: new Date(),
+  });
+});
 
 // ======================================================
 // API ROUTES
 // ======================================================
 
-app.use("/api/user", userRoute)
+app.use("/api/user", userRoute);
 
 // ======================================================
-// DEMO PRODUCT ROUTE
+// DEMO PRODUCTS ROUTE
+// (Replace with Product Route Later)
 // ======================================================
 
-app.get("/api/products", async (req, res) => {
-    try {
-        const products = [
-            {
-                id: 1,
-                name: "Premium Hoodie",
-                category: "Men",
-                price: 1999,
-                stock: 15,
-                rating: 4.8
-            },
-            {
-                id: 2,
-                name: "Stylish Jacket",
-                category: "Winter",
-                price: 2999,
-                stock: 10,
-                rating: 4.7
-            }
-        ]
+app.get("/api/products", (req, res) => {
+  const products = [
+    {
+      id: 1,
+      name: "Premium Hoodie",
+      category: "Men",
+      price: 1999,
+      stock: 15,
+      rating: 4.8,
+    },
+    {
+      id: 2,
+      name: "Stylish Jacket",
+      category: "Winter",
+      price: 2999,
+      stock: 10,
+      rating: 4.7,
+    },
+  ];
 
-        res.status(200).json({
-            success: true,
-            totalProducts: products.length,
-            products
-        })
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error.message
-        })
-    }
-})
+  res.status(200).json({
+    success: true,
+    totalProducts: products.length,
+    products,
+  });
+});
 
 // ======================================================
-// 404 HANDLER
+// 404 ROUTE
 // ======================================================
 
 app.use((req, res) => {
-    res.status(404).json({
-        success: false,
-        message: "API Route Not Found ❌"
-    })
-})
+  res.status(404).json({
+    success: false,
+    message: "API Route Not Found",
+  });
+});
 
 // ======================================================
 // GLOBAL ERROR HANDLER
 // ======================================================
 
-app.use((error, req, res, next) => {
-    console.error(error.stack)
+app.use((err, req, res, next) => {
+  console.error(err);
 
-    res.status(error.status || 500).json({
-        success: false,
-        message: error.message || "Internal Server Error"
-    })
-})
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || "Internal Server Error",
+  });
+});
 
 // ======================================================
 // START SERVER
 // ======================================================
 
-const PORT = process.env.PORT || 4000
+const PORT = process.env.PORT || 4000;
 
 const startServer = async () => {
-    try {
-        await initializeServices()
+  try {
+    await initializeServices();
 
-        app.listen(PORT, "0.0.0.0", () => {
-            console.log(`
+    const server = app.listen(PORT, "0.0.0.0", () => {
+      console.log(`
 ==================================================
-🚀 STYLENTRA SERVER STARTED
+🚀 STYLENTRA BACKEND STARTED
+
+🌐 Port        : ${PORT}
+🛠 Environment : ${process.env.NODE_ENV || "development"}
+🔗 Local URL   : http://localhost:${PORT}
+
 ==================================================
-🌐 PORT        : ${PORT}
-🛠 MODE        : ${process.env.NODE_ENV || "development"}
-🔗 LOCAL URL   : http://localhost:${PORT}
-==================================================
-`)
-        })
-    } catch (error) {
-        console.log(`
+`);
+    });
+
+    // Graceful Shutdown
+    const shutdown = async () => {
+      console.log("\n🛑 Shutting down server...");
+
+      server.close(async () => {
+        try {
+          await mongoose.connection.close();
+
+          console.log("✅ MongoDB Connection Closed");
+          console.log("✅ Server Shutdown Completed");
+
+          process.exit(0);
+        } catch (error) {
+          console.error(error.message);
+          process.exit(1);
+        }
+      });
+    };
+
+    process.on("SIGINT", shutdown);
+    process.on("SIGTERM", shutdown);
+  } catch (error) {
+    console.error(`
 ==================================================
 ❌ Server Startup Failed
-==================================================
-${error.message}
-==================================================
-`)
-        process.exit(1)
-    }
-}
 
-startServer()
+${error.message}
+
+==================================================
+`);
+
+    process.exit(1);
+  }
+};
+
+startServer();
