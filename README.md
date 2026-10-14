@@ -9,7 +9,7 @@ A modern e-commerce web application built using React.js and other web technolog
 **Aditya Kumar**
 
 - GitHub: [@Aditya957258](https://github.com/Aditya957258)
-- Project Repository: [EcommerceWebsite](https://github.com/Aditya957258/EcommerceWebsite)
+- Project Repository: [Stylentra-E-Commerce-Website](https://github.com/Aditya957258/Stylentra-E-Commerce-Website)
 - Email: aditya957258@gmail.com
 
 ## 🚀 Features
@@ -68,8 +68,8 @@ EcommerceWebsite/
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/Aditya957258/EcommerceWebsite.git
-cd EcommerceWebsite
+git clone https://github.com/Aditya957258/Stylentra-E-Commerce-Website.git
+cd Stylentra-E-Commerce-Website
 ```
 
 ### 2. Install frontend dependencies

@@ -1,0 +1,12 @@
+
+.DS_Store
+**/.DS_Store
+
+node_modules/
+dist/
+
+.env
+.env.*
+!.env.example
+
+Stylentra-E-Commerce-Website/
