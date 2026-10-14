@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://aditya957258.github.io/Stylentra-E-Commerce-Website/sitemap.xml
